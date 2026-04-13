@@ -26,7 +26,7 @@ IssueTracker is a comprehensive full-stack bug tracking and project management t
 * **Encrypted Passwords:** Users' passwords are encrypted securely using BCrypt hashing algorithm (`$2a$12$` complexity).
 
 ### 👥 User Roles & Access Control
-* **Dedicated Administrator:** The system strictly locks down admin privileges to designated administrators (e.g., `vaishnavb9999@gmail.com`). 
+* **Dedicated Administrator:** The system strictly locks down admin privileges to designated administrators. 
 * **Safe Registration:** New users signing up are strictly designated the default `REPORTER` access role, preventing privilege escalation.
 * **Restricted Admin Views:** Administrative actions on the Dashboard and User listings are locked behind Spring Security's `@PreAuthorize("hasRole('ADMIN')")` directives.
 
