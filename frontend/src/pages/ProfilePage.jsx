@@ -268,7 +268,7 @@ export default function ProfilePage() {
           borderRadius:8, background:'rgba(239,68,68,0.08)',
           border:'1px solid rgba(239,68,68,0.3)', color:'#ef4444',
           cursor:'pointer', fontSize:13, fontWeight:600 }}>
-          <LogOut size={14}/> Sign Out of IssueFlow
+          <LogOut size={14}/> Sign Out of IssueTracker
         </button>
       </div>
     </div>

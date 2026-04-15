@@ -1,4 +1,4 @@
-# 🚀 IssueFlow — Java Spring Boot + MySQL Edition
+# 🚀 IssueTracker — Java Spring Boot + MySQL Edition
 
 **K. Mokshith (B23IT111) · B. Vaishnav (B23CN017) · G. Vijaya Sindhu (B23DS006)**  
 Kakatiya Institute of Technology and Science, Warangal

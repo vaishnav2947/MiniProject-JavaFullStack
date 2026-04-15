@@ -98,7 +98,7 @@ export default function Layout() {
             <Zap size={18} color="white" fill="white" />
           </div>
           {!collapsed && <span style={{ fontFamily:'Syne,sans-serif', fontWeight:800,
-            fontSize:18, color:'#e8edf5', letterSpacing:'-0.02em' }}>IssueFlow</span>}
+            fontSize:18, color:'#e8edf5', letterSpacing:'-0.02em' }}>IssueTracker</span>}
         </div>
 
         {/* Nav links */}

@@ -56,7 +56,7 @@ export default function LoginPage() {
             <Zap size={30} color="white" fill="white"/>
           </div>
           <h1 style={{ fontFamily:'Syne,sans-serif', fontSize:30, fontWeight:800,
-            color:'#e8edf5', margin:0, letterSpacing:'-0.03em' }}>IssueFlow</h1>
+            color:'#e8edf5', margin:0, letterSpacing:'-0.03em' }}>IssueTracker</h1>
           <p style={{ color:'#8899b8', fontSize:14, marginTop:6 }}>
             Sign in to your workspace
           </p>

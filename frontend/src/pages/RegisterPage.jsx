@@ -41,7 +41,7 @@ export default function RegisterPage() {
             <Zap size={26} color="white" fill="white" />
           </div>
           <h1 style={{ fontFamily: 'Syne, sans-serif', fontSize: 26, fontWeight: 800, color: '#e8edf5', margin: 0, letterSpacing: '-0.03em' }}>Create Account</h1>
-          <p style={{ color: '#8899b8', fontSize: 13, marginTop: 5 }}>Join IssueFlow to start tracking</p>
+          <p style={{ color: '#8899b8', fontSize: 13, marginTop: 5 }}>Join IssueTracker to start tracking</p>
         </div>
 
         <div className="card" style={{ padding: 24 }}>
