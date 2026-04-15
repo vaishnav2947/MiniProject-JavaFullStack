@@ -5,6 +5,22 @@ import toast from 'react-hot-toast'
 import { getErrorMessage } from '../utils/helpers.jsx'
 import { ArrowLeft, Send, AlertCircle } from 'lucide-react'
 
+const Field = ({ label, required, error, children }) => (
+  <div>
+    <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#8899b8',
+      marginBottom:6, textTransform:'uppercase', letterSpacing:'0.06em' }}>
+      {label} {required && <span style={{ color:'#ef4444' }}>*</span>}
+    </label>
+    {children}
+    {error && (
+      <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:5,
+        fontSize:12, color:'#ef4444' }}>
+        <AlertCircle size={12}/> {error}
+      </div>
+    )}
+  </div>
+)
+
 export default function CreateIssuePage() {
   const navigate = useNavigate()
   const [form, setForm] = useState({
@@ -48,22 +64,6 @@ export default function CreateIssuePage() {
       else if (msg.toLowerCase().includes('description')) setErrors({ description: msg })
     } finally { setLoading(false) }
   }
-
-  const Field = ({ label, required, error, children }) => (
-    <div>
-      <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#8899b8',
-        marginBottom:6, textTransform:'uppercase', letterSpacing:'0.06em' }}>
-        {label} {required && <span style={{ color:'#ef4444' }}>*</span>}
-      </label>
-      {children}
-      {error && (
-        <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:5,
-          fontSize:12, color:'#ef4444' }}>
-          <AlertCircle size={12}/> {error}
-        </div>
-      )}
-    </div>
-  )
 
   const inputStyle = (hasError) => ({
     ...(hasError ? { borderColor:'#ef4444', boxShadow:'0 0 0 3px rgba(239,68,68,0.1)' } : {})
