@@ -20,41 +20,40 @@ public class IssueService {
     private final UserRepository userRepository;
     private final CommentRepository commentRepository;
     private final IssueHistoryRepository historyRepository;
+    private final NotificationService notificationService;
     private final MapperService mapper;
 
-    // ─── List / Search ────────────────────────────────────────────────────────
-
+    // ─── List ─────────────────────────────────────────────────────────────────
     public Page<IssueSummaryDTO> getIssues(
             String search, String status, String priority, String type,
             int page, int size, String sortBy, String sortDir, User currentUser) {
 
-        Issue.Status statusEnum = status != null && !status.isBlank()
-                ? Issue.Status.valueOf(status.toUpperCase().replace("-", "_")) : null;
-        Issue.Priority priorityEnum = priority != null && !priority.isBlank()
-                ? Issue.Priority.valueOf(priority.toUpperCase()) : null;
-        Issue.Type typeEnum = type != null && !type.isBlank()
-                ? Issue.Type.valueOf(type.toUpperCase()) : null;
+        Issue.Status statusEnum = parse(status, Issue.Status.class);
+        Issue.Priority priorityEnum = parse(priority, Issue.Priority.class);
+        Issue.Type typeEnum = parse(type, Issue.Type.class);
 
         Sort sort = sortDir.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
-        Pageable pageable = PageRequest.of(page - 1, size, sort);
+        Pageable pageable = PageRequest.of(Math.max(0, page - 1), size, sort);
 
         var spec = IssueSpecification.filter(search, statusEnum, priorityEnum, typeEnum, currentUser);
-        Page<Issue> issues = issueRepository.findAll(spec, pageable);
-
-        return issues.map(mapper::toIssueSummaryDTO);
+        return issueRepository.findAll(spec, pageable).map(mapper::toIssueSummaryDTO);
     }
 
     // ─── Create ───────────────────────────────────────────────────────────────
-
     @Transactional
     public IssueDTO createIssue(CreateIssueRequest request, User reporter) {
+        if (request.getTitle() == null || request.getTitle().isBlank())
+            throw new RuntimeException("Title is required.");
+        if (request.getDescription() == null || request.getDescription().isBlank())
+            throw new RuntimeException("Description is required.");
+
         Long maxNumber = issueRepository.findMaxIssueNumber().orElse(1000L);
 
         Issue issue = Issue.builder()
                 .issueNumber(maxNumber + 1)
-                .title(request.getTitle())
-                .description(request.getDescription())
+                .title(request.getTitle().trim())
+                .description(request.getDescription().trim())
                 .priority(request.getPriority() != null ? request.getPriority() : Issue.Priority.MEDIUM)
                 .type(request.getType() != null ? request.getType() : Issue.Type.BUG)
                 .status(Issue.Status.OPEN)
@@ -64,82 +63,83 @@ public class IssueService {
                 .build();
 
         issueRepository.save(issue);
-        return mapper.toIssueDTO(issue);
+        return mapper.toIssueDTO(issueRepository.findById(issue.getId()).orElse(issue));
     }
 
     // ─── Get By ID ────────────────────────────────────────────────────────────
-
     public IssueDTO getIssueById(Long id) {
-        Issue issue = findIssue(id);
-        return mapper.toIssueDTO(issue);
+        return mapper.toIssueDTO(findIssue(id));
     }
 
     // ─── Update ───────────────────────────────────────────────────────────────
-
     @Transactional
     public IssueDTO updateIssue(Long id, UpdateIssueRequest request, User currentUser) {
         Issue issue = findIssue(id);
         checkEditPermission(issue, currentUser);
 
-        if (request.getTitle() != null && !request.getTitle().equals(issue.getTitle())) {
+        if (request.getTitle() != null && !request.getTitle().isBlank()
+                && !request.getTitle().equals(issue.getTitle())) {
             addHistory(issue, currentUser, "title", issue.getTitle(), request.getTitle());
-            issue.setTitle(request.getTitle());
+            issue.setTitle(request.getTitle().trim());
         }
-        if (request.getDescription() != null && !request.getDescription().equals(issue.getDescription())) {
+        if (request.getDescription() != null && !request.getDescription().isBlank()
+                && !request.getDescription().equals(issue.getDescription())) {
             addHistory(issue, currentUser, "description", "updated", "updated");
-            issue.setDescription(request.getDescription());
+            issue.setDescription(request.getDescription().trim());
         }
         if (request.getPriority() != null && !request.getPriority().equals(issue.getPriority())) {
-            addHistory(issue, currentUser, "priority", issue.getPriority().name(), request.getPriority().name());
+            addHistory(issue, currentUser, "priority",
+                    issue.getPriority().name(), request.getPriority().name());
             issue.setPriority(request.getPriority());
         }
         if (request.getType() != null && !request.getType().equals(issue.getType())) {
-            addHistory(issue, currentUser, "type", issue.getType().name(), request.getType().name());
+            addHistory(issue, currentUser, "type",
+                    issue.getType().name(), request.getType().name());
             issue.setType(request.getType());
         }
-        if (request.getTags() != null) issue.setTags(request.getTags());
+        if (request.getTags() != null)   issue.setTags(request.getTags());
         if (request.getDueDate() != null) issue.setDueDate(request.getDueDate());
 
         issueRepository.save(issue);
-        return mapper.toIssueDTO(issue);
+        return mapper.toIssueDTO(findIssue(id));
     }
 
     // ─── Status Update ────────────────────────────────────────────────────────
-
     @Transactional
     public IssueDTO updateStatus(Long id, Issue.Status newStatus, User currentUser) {
         Issue issue = findIssue(id);
-
-        boolean isAdmin = currentUser.getRole() == User.Role.ADMIN;
+        boolean isAdmin    = currentUser.getRole() == User.Role.ADMIN;
         boolean isAssignee = issue.getAssignee() != null
                 && issue.getAssignee().getId().equals(currentUser.getId());
 
-        if (!isAdmin && !isAssignee) {
-            throw new RuntimeException("Not authorized to change status.");
-        }
+        if (!isAdmin && !isAssignee)
+            throw new RuntimeException("Only the assignee or admin can change status.");
 
-        addHistory(issue, currentUser, "status", issue.getStatus().name(), newStatus.name());
+        String oldStatus = issue.getStatus().name();
+        addHistory(issue, currentUser, "status", oldStatus, newStatus.name());
         issue.setStatus(newStatus);
 
-        if (newStatus == Issue.Status.RESOLVED && issue.getResolvedAt() == null) {
+        if (newStatus == Issue.Status.RESOLVED && issue.getResolvedAt() == null)
             issue.setResolvedAt(LocalDateTime.now());
-        }
-        if (newStatus == Issue.Status.CLOSED && issue.getClosedAt() == null) {
+        if (newStatus == Issue.Status.CLOSED && issue.getClosedAt() == null)
             issue.setClosedAt(LocalDateTime.now());
-        }
 
         issueRepository.save(issue);
-        return mapper.toIssueDTO(issue);
+
+        // Notify reporter and assignee
+        notificationService.notifyStatusChanged(issue, currentUser, oldStatus, newStatus.name());
+
+        return mapper.toIssueDTO(findIssue(id));
     }
 
     // ─── Assign ───────────────────────────────────────────────────────────────
-
     @Transactional
     public IssueDTO assignIssue(Long id, Long assigneeId, User currentUser) {
         Issue issue = findIssue(id);
-        String oldAssignee = issue.getAssignee() != null ? issue.getAssignee().getName() : "unassigned";
+        String oldAssignee = issue.getAssignee() != null
+                ? issue.getAssignee().getName() : "unassigned";
 
-        // Decrement old assignee workload
+        // Decrement old assignee count
         if (issue.getAssignee() != null) {
             User prev = issue.getAssignee();
             prev.setAssignedIssuesCount(Math.max(0, prev.getAssignedIssuesCount() - 1));
@@ -150,56 +150,55 @@ public class IssueService {
             User newAssignee = userRepository.findById(assigneeId)
                     .orElseThrow(() -> new RuntimeException("Developer not found."));
             issue.setAssignee(newAssignee);
-            if (issue.getStatus() == Issue.Status.OPEN) {
+            if (issue.getStatus() == Issue.Status.OPEN)
                 issue.setStatus(Issue.Status.IN_PROGRESS);
-            }
             newAssignee.setAssignedIssuesCount(newAssignee.getAssignedIssuesCount() + 1);
             userRepository.save(newAssignee);
             addHistory(issue, currentUser, "assignee", oldAssignee, newAssignee.getName());
+
+            issueRepository.save(issue);
+            // Notify new assignee
+            notificationService.notifyAssigned(issue, currentUser);
         } else {
             issue.setAssignee(null);
-            if (issue.getStatus() == Issue.Status.IN_PROGRESS) {
+            if (issue.getStatus() == Issue.Status.IN_PROGRESS)
                 issue.setStatus(Issue.Status.OPEN);
-            }
             addHistory(issue, currentUser, "assignee", oldAssignee, "unassigned");
+            issueRepository.save(issue);
         }
 
-        issueRepository.save(issue);
-        return mapper.toIssueDTO(issue);
+        return mapper.toIssueDTO(findIssue(id));
     }
 
     // ─── Delete ───────────────────────────────────────────────────────────────
-
     @Transactional
     public void deleteIssue(Long id, User currentUser) {
         Issue issue = findIssue(id);
-        boolean isAdmin = currentUser.getRole() == User.Role.ADMIN;
+        boolean isAdmin    = currentUser.getRole() == User.Role.ADMIN;
         boolean isReporter = issue.getReporter().getId().equals(currentUser.getId());
-
-        if (!isAdmin && !isReporter) {
+        if (!isAdmin && !isReporter)
             throw new RuntimeException("Not authorized to delete this issue.");
-        }
-
         if (issue.getAssignee() != null) {
-            User assignee = issue.getAssignee();
-            assignee.setAssignedIssuesCount(Math.max(0, assignee.getAssignedIssuesCount() - 1));
-            userRepository.save(assignee);
+            User a = issue.getAssignee();
+            a.setAssignedIssuesCount(Math.max(0, a.getAssignedIssuesCount() - 1));
+            userRepository.save(a);
         }
-
         issueRepository.delete(issue);
     }
 
     // ─── Comments ─────────────────────────────────────────────────────────────
-
     @Transactional
     public List<CommentDTO> addComment(Long issueId, String text, User currentUser) {
+        if (text == null || text.isBlank())
+            throw new RuntimeException("Comment text cannot be empty.");
         Issue issue = findIssue(issueId);
         Comment comment = Comment.builder()
-                .issue(issue)
-                .user(currentUser)
-                .text(text)
-                .build();
+                .issue(issue).user(currentUser).text(text.trim()).build();
         commentRepository.save(comment);
+
+        // Notify reporter & assignee
+        notificationService.notifyCommented(issue, currentUser);
+
         return commentRepository.findByIssueOrderByCreatedAtAsc(issue)
                 .stream().map(mapper::toCommentDTO).collect(Collectors.toList());
     }
@@ -208,42 +207,43 @@ public class IssueService {
     public void deleteComment(Long issueId, Long commentId, User currentUser) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new RuntimeException("Comment not found."));
-
         boolean isOwner = comment.getUser().getId().equals(currentUser.getId());
         boolean isAdmin = currentUser.getRole() == User.Role.ADMIN;
-
-        if (!isOwner && !isAdmin) {
+        if (!isOwner && !isAdmin)
             throw new RuntimeException("Not authorized to delete this comment.");
-        }
         commentRepository.delete(comment);
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
-
     private Issue findIssue(Long id) {
         return issueRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Issue not found."));
+                .orElseThrow(() -> new RuntimeException("Issue #" + id + " not found."));
     }
 
     private void checkEditPermission(Issue issue, User currentUser) {
-        boolean isAdmin = currentUser.getRole() == User.Role.ADMIN;
+        boolean isAdmin    = currentUser.getRole() == User.Role.ADMIN;
         boolean isReporter = issue.getReporter().getId().equals(currentUser.getId());
         boolean isAssignee = issue.getAssignee() != null
                 && issue.getAssignee().getId().equals(currentUser.getId());
-        if (!isAdmin && !isReporter && !isAssignee) {
+        if (!isAdmin && !isReporter && !isAssignee)
             throw new RuntimeException("Not authorized to edit this issue.");
-        }
     }
 
-    private void addHistory(Issue issue, User changedBy, String field, String oldVal, String newVal) {
-        IssueHistory history = IssueHistory.builder()
-                .issue(issue)
-                .changedBy(changedBy)
-                .fieldName(field)
-                .oldValue(oldVal)
-                .newValue(newVal)
-                .build();
-        historyRepository.save(history);
-        issue.getHistory().add(history);
+    private void addHistory(Issue issue, User changedBy, String field,
+                            String oldVal, String newVal) {
+        IssueHistory h = IssueHistory.builder()
+                .issue(issue).changedBy(changedBy)
+                .fieldName(field).oldValue(oldVal).newValue(newVal).build();
+        historyRepository.save(h);
+        issue.getHistory().add(h);
+    }
+
+    private <T extends Enum<T>> T parse(String value, Class<T> enumClass) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return Enum.valueOf(enumClass, value.toUpperCase().replace("-", "_"));
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }

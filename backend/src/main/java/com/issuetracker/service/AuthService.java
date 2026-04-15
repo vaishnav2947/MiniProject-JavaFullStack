@@ -32,7 +32,7 @@ public class AuthService {
                 .name(request.getName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(User.Role.REPORTER)
+                .role(request.getRole() != null ? request.getRole() : User.Role.REPORTER)
                 .department(request.getDepartment())
                 .active(true)
                 .build();

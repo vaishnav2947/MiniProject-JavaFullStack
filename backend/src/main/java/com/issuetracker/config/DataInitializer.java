@@ -21,17 +21,17 @@ public class DataInitializer implements CommandLineRunner {
         // Create default admin account only if no users exist
         if (userRepository.count() == 0) {
             User admin = User.builder()
-                    .name("Default User")
-                    .email("admin@issuetracker.com")
+                    .name("Admin User")
+                    .email("admin@issueflow.com")
                     .password(passwordEncoder.encode("admin123"))
-                    .role(User.Role.REPORTER)
+                    .role(User.Role.ADMIN)
                     .department("Engineering")
                     .active(true)
                     .build();
             userRepository.save(admin);
             log.info("========================================");
-            log.info("  Default user account created:");
-            log.info("  Email:    admin@issuetracker.com");
+            log.info("  Default admin account created:");
+            log.info("  Email:    admin@issueflow.com");
             log.info("  Password: admin123");
             log.info("  Please change after first login!");
             log.info("========================================");
