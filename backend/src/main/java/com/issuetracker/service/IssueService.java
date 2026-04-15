@@ -24,6 +24,7 @@ public class IssueService {
     private final MapperService mapper;
 
     // ─── List ─────────────────────────────────────────────────────────────────
+    @Transactional(readOnly = true)
     public Page<IssueSummaryDTO> getIssues(
             String search, String status, String priority, String type,
             int page, int size, String sortBy, String sortDir, User currentUser) {
@@ -67,6 +68,7 @@ public class IssueService {
     }
 
     // ─── Get By ID ────────────────────────────────────────────────────────────
+    @Transactional(readOnly = true)
     public IssueDTO getIssueById(Long id) {
         return mapper.toIssueDTO(findIssue(id));
     }
