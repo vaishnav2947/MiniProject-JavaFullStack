@@ -16,21 +16,49 @@ Kakatiya Institute of Technology and Science, Warangal
 | Security  | Role-Based Access Control (RBAC), Stateless sessions     |
 
 ### 🔐 Authentication & Security
-* **JWT-based Authentication:** Secure, stateless login architecture.
-* **Role-Based Access Control (RBAC):** Strict permissions ensuring that only specific roles (e.g., ADMIN) can access sensitive administrative features.
-* **Encrypted Passwords:** Users' passwords are encrypted securely using BCrypt hashing algorithm (`$2a$12$` complexity).
+* **JWT-based Authentication:** Secure, stateless login architecture (7-day expiry).
+* **Encrypted Passwords:** Users' passwords are encrypted securely using BCrypt hashing algorithm (12-round complexity).
+* **Role-Based Access Control (RBAC):** Strict permissions ensuring that only specific roles (e.g., ADMIN) can access sensitive administrative features, natively enforced at the API framework level (`@PreAuthorize`).
+* **Hardened Headers:** Built-in CSP headers, `X-Frame-Options` deny, and strict `Referrer-Policy`.
+* **Login Protection:** Active login attempt counter featuring UI warnings (maximum 5 attempts).
+* **Password Strength:** Real-time visual password strength measuring meter within the profile page.
+* **Accessibility:** Full `autocomplete` attributes attached on all authentication forms alongside clearly labelled Sign In / Sign Out touchpoints.
 
 ### 👥 User Roles & Access Control
 * **Dedicated Administrator:** The system strictly locks down admin privileges to designated administrators. 
 * **Safe Registration:** New users signing up are strictly designated the default `REPORTER` access role, preventing privilege escalation.
-* **Restricted Admin Views:** Administrative actions on the Dashboard and User listings are locked behind Spring Security's `@PreAuthorize("hasRole('ADMIN')")` directives.
+* **Restricted Admin Views:** Administrative actions on the Dashboard and User listings are locked completely.
 
 ### 📝 Issue Tracking & Management
 * **Create & Edit Issues:** Quickly report bugs and create tasks with descriptions, strict statuses, and prioritization logic.
-* **Rich Filtering:** See exactly what you need on the dashboard by filtering down issues to specific criteria.
 * **Issue History & Audit Trails:** Every modification to an issue keeps a transparent trail.
 * **Commenting System:** Team members can drop comments collaboratively inside issue threads.
 * **Tags System:** Tag issues for easier grouping and searching.
+
+### 🔄 Issue Status Workflow
+* **Visual Stepper:** Track issue progression directly through a visual stepper on the issue detail page (from Step 1 → 4).
+* **Status Indicators:** Fully completed steps present a green checkmark `✓`, whereas the current step pulses/glows correlating with the active status colour.
+* **Contextual Explanations:** Live step descriptions are explicitly showcased below the stepper component for clarity.
+
+### 🔍 Filtering System
+* **Comprehensive Filtering:** Isolate issues precisely by filtering against Status (Open / In Progress / Resolved / Closed), Priority (Critical / High / Medium / Low), or Type (Bug / Feature / Task / Improvement).
+* **Advanced Sorting Integrations:** Toggle views to Sort by Newest, Last Updated, Priority, or Status states.
+* **Active Filter Chips:** Enable active filter criteria translated cleanly as removable chips bridging a flawless search UX.
+* **Highlighting Indicators:** Deeply urgent issues (e.g., Critical) aggressively highlight with a red left border.
+* **URL Syncing Capability:** All filtered and sorted selections fluidly sync with browser URLs unlocking instantly shareable links!
+
+### 📊 Dashboard Analytics
+* **Clickable Insights:** Priority and Status donut charts drill directly down into populated filtered issue listings on interaction!
+* **Automated Computations:** Resolution rates dynamically translate to animatronic progress bars accompanied flawlessly by structured Issue Type bar charts.
+* **Stat Shortcuts:** Quick access "Stat cards" operate as direct avenues (e.g., clicking on "Critical" triggers redirect to `/issues?priority=CRITICAL`).
+* **Intelligent Auto-Refresh:** Keep pace perfectly with a Dashboard reporting grid that self-refreshes every 30 seconds alongside a manual override button.
+
+### 🔔 Real-Time Notifications
+* **Constant Connectivity:** A reactive bell icon docked seamlessly in the top structural bar rendering live unread count badges.
+* **Automated Fetching:** Smart lightweight polling triggers reliably every 15 seconds.
+* **Click-to-Target Navigation:** Instantly engage with a notification to seamlessly jump to the correlated targeted issue trace!
+* **Target Actions:** Fluid choices to "Mark single as read" or universally "Mark all read".
+* **Extensive Triggers:** Proactive notifications dynamically queue on events such as Issue Assignment, core Status Change, or New Comments.
 
 ### 💼 Department & Organization Features
 * Complete view of all active registered users.
